@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Musify - Music Player (Spotify-style clone)</title>
+<style>
+  :root{--bg:#000;--panel:#121212;--card:#181818;--hover:#282828;--text:#fff;--sub:#b3b3b3;--green:#1db954}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:grid;grid-template-columns:260px 1fr;grid-template-rows:1fr 90px;gap:8px;padding:8px}
+  button{background:none;border:0;color:inherit;cursor:pointer;font:inherit}
+  button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+  /* Sidebar */
+  .side{grid-row:1;display:flex;flex-direction:column;gap:8px}
+  .box{background:var(--panel);border-radius:10px;padding:18px}
+  .nav a{display:flex;gap:16px;align-items:center;padding:8px 4px;color:var(--sub);font-weight:700;text-decoration:none;cursor:pointer}
+  .nav a:hover,.nav a.on{color:#fff}
+  .logo{font-size:22px;font-weight:800;margin-bottom:14px;color:#fff}
+  .logo span{color:var(--green)}
+  .lib{flex:1;overflow:auto}
+  .lib h4{color:var(--sub);margin-bottom:14px}
+  .pl{display:flex;gap:12px;align-items:center;padding:8px;border-radius:6px;cursor:pointer}
+  .pl:hover{background:var(--hover)}
+  .pl i{width:44px;height:44px;border-radius:4px;flex:none}
+  .pl small{display:block;color:var(--sub)}
+  /* Main */
+  main{background:linear-gradient(#2b2b4a 0,var(--panel) 300px);border-radius:10px;overflow:auto;padding:0 28px 28px;grid-row:1}
+  .top{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;padding:16px 0;background:transparent;z-index:2}
+  .search{background:#242424;border-radius:30px;padding:10px 18px;width:min(360px,60%);display:flex;gap:8px;align-items:center}
+  .search input{background:none;border:0;color:#fff;width:100%;font-size:14px;outline:none}
+  .user{background:#000;border-radius:30px;padding:6px 14px 6px 6px;display:flex;gap:8px;align-items:center;font-weight:700;font-size:14px}
+  .user b{width:28px;height:28px;border-radius:50%;background:var(--green);color:#000;display:grid;place-items:center}
+  h2{font-size:26px;margin:22px 0 14px}
+  .chips{display:flex;gap:8px;margin-bottom:6px}
+  .chip{background:#ffffff1a;border-radius:20px;padding:7px 16px;font-size:14px}
+  .chip.on{background:#fff;color:#000}
+  .quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .q{display:flex;align-items:center;background:#ffffff1a;border-radius:6px;overflow:hidden;cursor:pointer;font-weight:700;position:relative}
+  .q:hover{background:#ffffff33}
+  .q i{width:64px;height:64px;margin-right:14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:18px}
+  .card{background:var(--card);padding:14px;border-radius:8px;cursor:pointer;position:relative;transition:background .2s}
+  .card:hover{background:var(--hover)}
+  .card i{display:block;aspect-ratio:1;border-radius:6px;margin-bottom:12px;box-shadow:0 8px 20px #0007}
+  .card b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card small{color:var(--sub);font-size:13px;display:block;margin-top:4px}
+  .play{position:absolute;right:22px;bottom:84px;width:44px;height:44px;border-radius:50%;background:var(--green);color:#000;display:grid;place-items:center;opacity:0;transform:translateY(8px);transition:.2s;box-shadow:0 8px 16px #0006;font-size:16px}
+  .card:hover .play{opacity:1;transform:none}
+  /* Song list */
+  .songs{width:100%;border-collapse:collapse;margin-top:6px}
+  .songs th{color:var(--sub);font-weight:400;text-align:left;padding:8px 12px;border-bottom:1px solid #ffffff1a;font-size:13px}
+  .songs td{padding:8px 12px;color:var(--sub);font-size:14px}
+  .songs tr.row{cursor:pointer;border-radius:6px}
+  .songs tr.row:hover td{background:#ffffff1a}
+  .songs td:first-child{border-radius:6px 0 0 6px;width:40px}
+  .songs td:last-child{border-radius:0 6px 6px 0;text-align:right}
+  .songs tr.cur td{color:var(--green)}
+  .songs .t{display:flex;gap:12px;align-items:center;color:#fff}
+  .songs tr.cur .t{color:var(--green)}
+  .songs .t i{width:40px;height:40px;border-radius:4px}
+  /* Player bar */
+  footer{grid-column:1/-1;display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;padding:0 12px}
+  .now{display:flex;gap:12px;align-items:center;min-width:0}
+  .now i{width:56px;height:56px;border-radius:4px;flex:none}
+  .now b,.now small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .now small{color:var(--sub);font-size:12px}
+  .ctrl{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .btns{display:flex;gap:18px;align-items:center}
+  .btns button{color:var(--sub);font-size:18px}
+  .btns button:hover{color:#fff}
+  .btns button.on{color:var(--green)}
+  .pp{width:36px;height:36px;border-radius:50%;background:#fff;color:#000!important;display:grid;place-items:center;font-size:14px!important}
+  .pp:hover{transform:scale(1.06)}
+  .bar{display:flex;gap:8px;align-items:center;width:100%;max-width:560px;color:var(--sub);font-size:12px}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:linear-gradient(to right,#fff var(--v,0%),#4d4d4d var(--v,0%));flex:1;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#fff;opacity:0}
+  input[type=range]:hover{--c:1}
+  input[type=range]:hover::-webkit-slider-thumb{opacity:1}
+  .bar:hover input[type=range]{background:linear-gradient(to right,var(--green) var(--v,0%),#4d4d4d var(--v,0%))}
+  .vol{display:flex;gap:8px;align-items:center;justify-content:flex-end;color:var(--sub)}
+  .vol input{max-width:110px}
+  .hide{display:none}
+  @media(max-width:760px){
+    body{grid-template-columns:1fr;grid-template-rows:1fr 150px}
+    .side{display:none}
+    footer{grid-template-columns:1fr;gap:4px;padding:6px 10px}
+    .vol{display:none}
+  }
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="box nav">
+    <div class="logo">Music<span>ify</span></div>
+    <a class="on" data-view="home">&#8962; Home</a>
+    <a data-view="search">&#9906; Search</a>
+  </div>
+  <div class="box lib">
+    <h4>Your Library</h4>
+    <div id="libList"></div>
+  </div>
+</aside>
+
+<main id="main">
+  <div class="top">
+    <div class="search"><span>&#9906;</span><input id="q" placeholder="What do you want to play?" aria-label="Search songs"></div>
+    <div class="user"><b>U</b>Profile</div>
+  </div>
+  <div id="view"></div>
+</main>
+
+<footer>
+  <div class="now">
+    <i id="npCover"></i>
+    <div><b id="npTitle">Pick a song</b><small id="npArtist">Nothing playing</small></div>
+  </div>
+  <div class="ctrl">
+    <div class="btns">
+      <button id="shuf" title="Shuffle">&#8644;</button>
+      <button id="prev" title="Previous">&#9198;</button>
+      <button id="pp" class="pp" title="Play">&#9654;</button>
+      <button id="next" title="Next">&#9197;</button>
+      <button id="rep" title="Repeat">&#8635;</button>
+    </div>
+    <div class="bar"><span id="cur">0:00</span><input type="range" id="seek" min="0" max="100" value="0"><span id="dur">0:00</span></div>
+  </div>
+  <div class="vol"><span>&#128266;</span><input type="range" id="vol" min="0" max="100" value="70"></div>
+</footer>
+
+<script>
+/* ---------- Data (original placeholder songs; covers are CSS gradients) ---------- */
+const g=(a,b)=>`linear-gradient(135deg,${a},${b})`;
+const songs=[
+  {t:"Midnight Drive",a:"Neon Harbor",al:"After Hours",d:214,c:g("#ff512f","#dd2476")},
+  {t:"Golden Hour",a:"Sunday Static",al:"Warm Light",d:187,c:g("#f7971e","#ffd200")},
+  {t:"Paper Planes",a:"The Low Tide",al:"Drift",d:243,c:g("#43cea2","#185a9d")},
+  {t:"City Lights",a:"Neon Harbor",al:"After Hours",d:201,c:g("#8e2de2","#4a00e0")},
+  {t:"Slow Bloom",a:"Maple & June",al:"Greenhouse",d:176,c:g("#56ab2f","#a8e063")},
+  {t:"Static Hearts",a:"Sunday Static",al:"Warm Light",d:229,c:g("#ee0979","#ff6a00")},
+  {t:"Ocean Floor",a:"The Low Tide",al:"Drift",d:258,c:g("#2193b0","#6dd5ed")},
+  {t:"Last Train Home",a:"Maple & June",al:"Greenhouse",d:195,c:g("#232526","#677e8c")}
+];
+const lists=[
+  {n:"Chill Vibes",s:"Playlist",c:g("#3a7bd5","#00d2ff")},
+  {n:"Workout Mix",s:"Playlist",c:g("#f12711","#f5af19")},
+  {n:"Late Night Focus",s:"Playlist",c:g("#41295a","#2f0743")},
+  {n:"Road Trip",s:"Playlist",c:g("#11998e","#38ef7d")},
+  {n:"Throwback Hits",s:"Playlist",c:g("#fc4a1a","#f7b733")},
+  {n:"Acoustic Mornings",s:"Playlist",c:g("#c79081","#dfa579")}
+];
+const fmt=s=>Math.floor(s/60)+":"+String(Math.floor(s%60)).padStart(2,"0");
+
+/* ---------- State ---------- */
+let idx=-1,playing=false,pos=0,shuffle=false,repeat=false,timer=null,filter="";
+const $=id=>document.getElementById(id);
+
+/* ---------- Render ---------- */
+function songTable(list){
+  return `<table class="songs"><tr><th>#</th><th>Title</th><th>Album</th><th style="text-align:right">Time</th></tr>`+
+  list.map(s=>{const i=songs.indexOf(s);return `<tr class="row ${i===idx?'cur':''}" data-i="${i}"><td>${i===idx&&playing?'&#9835;':i+1}</td><td><div class="t"><i style="background:${s.c}"></i><div>${s.t}<div style="color:var(--sub);font-size:13px">${s.a}</div></div></div></td><td>${s.al}</td><td>${fmt(s.d)}</td></tr>`}).join("")+`</table>`;
+}
+function home(){
+  $("view").innerHTML=`
+  <div class="chips"><span class="chip on">All</span><span class="chip">Music</span><span class="chip">Podcasts</span></div>
+  <h2>Good evening</h2>
+  <div class="quick">${lists.map((l,i)=>`<div class="q" data-p="${i}"><i style="background:${l.c}"></i>${l.n}</div>`).join("")}</div>
+  <h2>Made for you</h2>
+  <div class="grid">${lists.map((l,i)=>`<div class="card" data-p="${i}"><i style="background:${l.c}"></i><b>${l.n}</b><small>Fresh picks based on what you play</small><button class="play" aria-label="Play ${l.n}">&#9654;</button></div>`).join("")}</div>
+  <h2>Popular songs</h2>${songTable(songs)}`;
+}
+function search(){
+  const r=songs.filter(s=>(s.t+s.a+s.al).toLowerCase().includes(filter.toLowerCase()));
+  $("view").innerHTML=`<h2>${filter?'Results for "'+filter.replace(/</g,"&lt;")+'"':'Browse all songs'}</h2>`+(r.length?songTable(r):`<p style="color:var(--sub)">No songs found. Try a different title or artist.</p>`);
+}
+let view="home";
+function render(){view==="home"?home():search()}
+$("libList").innerHTML=lists.map((l,i)=>`<div class="pl" data-p="${i}"><i style="background:${l.c}"></i><div><b>${l.n}</b><small>${l.s}</small></div></div>`).join("");
+
+/* ---------- Sound engine (Web Audio: every song is synthesized live, no files needed) ---------- */
+const MIN=[0,3,5,7,10,12,15,17],MAJ=[0,2,4,7,9,12,14,16];
+const meta=[{bpm:98,r:57,sc:MIN,s:3},{bpm:112,r:60,sc:MAJ,s:7},{bpm:88,r:55,sc:MAJ,s:11},{bpm:104,r:59,sc:MIN,s:5},
+            {bpm:80,r:62,sc:MAJ,s:19},{bpm:120,r:58,sc:MIN,s:23},{bpm:84,r:57,sc:MIN,s:31},{bpm:92,r:53,sc:MIN,s:41}];
+const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const hz=m=>440*Math.pow(2,(m-69)/12);
+const ROOTS=[0,-3,-5,-2];
+let ctx,master,bus,noiseBuf,t0=0,nextStep=0,pat=[];
+const sd=()=>60/meta[idx].bpm/2;
+
+function initAudio(){
+  if(ctx)return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  master=ctx.createGain();master.gain.value=.56;master.connect(ctx.destination);
+  noiseBuf=ctx.createBuffer(1,ctx.sampleRate*.2,ctx.sampleRate);
+  const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+}
+function tone(f,t,dur,type,vol,dest){
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.type=type;o.frequency.value=f;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g).connect(dest);o.start(t);o.stop(t+dur+.05);
+}
+function kick(t){
+  const o=ctx.createOscillator(),g=ctx.createGain();
+  o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(40,t+.12);
+  g.gain.setValueAtTime(.7,t);g.gain.exponentialRampToValueAtTime(.001,t+.2);
+  o.connect(g).connect(bus);o.start(t);o.stop(t+.25);
+}
+function hat(t){
+  const n=ctx.createBufferSource(),f=ctx.createBiquadFilter(),g=ctx.createGain();
+  n.buffer=noiseBuf;f.type="highpass";f.frequency.value=7000;
+  g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+.05);
+  n.connect(f).connect(g).connect(bus);n.start(t);n.stop(t+.06);
+}
+function makePattern(i){
+  const r=rng(meta[i].s*1000+7),p=[];
+  for(let k=0;k<32;k++)p.push(k%2===0&&r()>.25||r()>.8?Math.floor(r()*8):-1);
+  return p;
+}
+function playStep(n,t){
+  const m=meta[idx],step=n%32,chord=Math.floor(n/8)%4,root=m.r+ROOTS[chord],third=m.sc===MIN?3:4;
+  if(step%4===0){kick(t);tone(hz(root-12),t,sd()*3.5,"triangle",.5,bus)}
+  if(step%2===1)hat(t);
+  if(n%8===0)[0,third,7].forEach(x=>tone(hz(root+x),t,sd()*8,"sine",.1,bus));
+  const d=pat[step];
+  if(d>=0)tone(hz(m.r+12+m.sc[d]),t,sd()*1.8,"triangle",.28,bus);
+}
+function scheduler(){
+  while(t0+nextStep*sd()<ctx.currentTime+.35){playStep(nextStep,t0+nextStep*sd());nextStep++}
+}
+function newBus(){
+  if(bus){const old=bus;old.gain.setTargetAtTime(0,ctx.currentTime,.03);setTimeout(()=>old.disconnect(),400)}
+  bus=ctx.createGain();bus.connect(master);
+}
+function restartFrom(p){
+  newBus();t0=ctx.currentTime-p;nextStep=Math.ceil(p/sd());
+}
+
+/* ---------- Player ---------- */
+function load(i){
+  initAudio();idx=i;pos=0;pat=makePattern(i);
+  const s=songs[i];
+  $("npTitle").textContent=s.t;$("npArtist").textContent=s.a;$("npCover").style.background=s.c;
+  $("dur").textContent=fmt(s.d);$("seek").max=s.d;
+  restartFrom(0);play(true);
+}
+function play(fresh){
+  if(idx<0){load(0);return}
+  initAudio();
+  ctx.resume();playing=true;$("pp").innerHTML="&#10074;&#10074;";$("pp").title="Pause";
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    pos=ctx.currentTime-t0;
+    if(pos>=songs[idx].d){repeat?load(idx):nextSong();return}
+    scheduler();tick();
+  },100);
+  scheduler();tick();render();
+}
+function pause(){playing=false;clearInterval(timer);ctx&&ctx.suspend();$("pp").innerHTML="&#9654;";$("pp").title="Play";render()}
+function tick(){
+  $("cur").textContent=fmt(pos);$("seek").value=pos;
+  $("seek").style.setProperty("--v",(pos/songs[idx].d*100)+"%");
+}
+function nextSong(){load(shuffle?Math.floor(Math.random()*songs.length):(idx+1)%songs.length)}
+function prevSong(){pos>3?load(idx):load((idx-1+songs.length)%songs.length)}
+
+$("pp").onclick=()=>playing?pause():play();
+$("next").onclick=nextSong;$("prev").onclick=prevSong;
+$("shuf").onclick=e=>{shuffle=!shuffle;e.currentTarget.classList.toggle("on",shuffle)};
+$("rep").onclick=e=>{repeat=!repeat;e.currentTarget.classList.toggle("on",repeat)};
+$("seek").oninput=e=>{if(idx<0)return;pos=+e.target.value;restartFrom(pos);tick()};
+$("vol").oninput=e=>{e.target.style.setProperty("--v",e.target.value+"%");if(master)master.gain.value=e.target.value/100*.8};
+$("vol").style.setProperty("--v","70%");
+
+/* ---------- Events ---------- */
+document.addEventListener("click",e=>{
+  const row=e.target.closest(".row");if(row){load(+row.dataset.i);return}
+  const p=e.target.closest("[data-p]");if(p){load(+p.dataset.p%songs.length);return}
+  const n=e.target.closest("[data-view]");
+  if(n){view=n.dataset.view;document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on",a===n));render()}
+});
+$("q").addEventListener("input",e=>{filter=e.target.value;view="search";document.querySelectorAll(".nav a").forEach(a=>a.classList.toggle("on",a.dataset.view==="search"));search()});
+document.addEventListener("keydown",e=>{if(e.code==="Space"&&e.target.tagName!=="INPUT"){e.preventDefault();$("pp").click()}});
+
+render();
+</script>
+</body>
+</html>
